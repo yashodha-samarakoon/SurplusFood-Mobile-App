@@ -1,131 +1,260 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useOrders } from '../context/OrderContext';
 
-export default function OrdersScreen() {
+const STATUS_FILTERS = ['All', 'Ready for Pickup', 'Confirmed', 'Completed'];
+
+export default function OrdersScreen({ navigation }) {
   const { orders } = useOrders();
+  const [selectedFilter, setSelectedFilter] = useState('All');
+
+  // Filter orders based on selected tab
+  const filteredOrders = useMemo(() => {
+    if (selectedFilter === 'All') return orders;
+    return orders.filter((o) => o.status === selectedFilter);
+  }, [orders, selectedFilter]);
+
+  // Status badge styling helper
+  const getStatusBadgeStyle = (status) => {
+    switch (status) {
+      case 'Ready for Pickup':
+        return {
+          bg: '#DCFCE7',
+          color: colors.primaryDark,
+          border: '#86EFAC',
+          icon: 'bag-check',
+        };
+      case 'Confirmed':
+        return {
+          bg: '#FEF3C7',
+          color: '#B45309',
+          border: '#FDE68A',
+          icon: 'checkmark-circle',
+        };
+      case 'Completed':
+        return {
+          bg: '#F1F5F9',
+          color: '#475569',
+          border: '#CBD5E1',
+          icon: 'checkmark-done-circle',
+        };
+      default:
+        return {
+          bg: '#DCFCE7',
+          color: colors.primaryDark,
+          border: '#86EFAC',
+          icon: 'receipt',
+        };
+    }
+  };
+
+  const handleOrderPress = (order) => {
+    navigation.navigate('OrderDetail', { order });
+  };
 
   return (
     <View style={styles.container}>
+      {/* Top Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Orders</Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.headerTitle}>My Orders</Text>
+          <View style={styles.totalBadge}>
+            <Text style={styles.totalBadgeText}>{orders.length} Total</Text>
+          </View>
+        </View>
+
+        {/* Filter Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {STATUS_FILTERS.map((filter) => {
+            const isSelected = selectedFilter === filter;
+            return (
+              <TouchableOpacity
+                key={filter}
+                style={[
+                  styles.filterPill,
+                  isSelected ? styles.filterPillActive : styles.filterPillInactive,
+                ]}
+                onPress={() => setSelectedFilter(filter)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.filterText,
+                    isSelected ? styles.filterTextActive : styles.filterTextInactive,
+                  ]}
+                >
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* If user has placed orders, display Active Orders */}
-        {orders.length > 0 ? (
-          <View style={styles.ordersSection}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeading}>Active Reservations</Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countText}>{orders.length} Active</Text>
-              </View>
-            </View>
-
-            {orders.map((order, index) => (
-              <View key={order.orderId || index} style={styles.orderCard}>
-                {/* Header row of card */}
+      {/* Orders List Content */}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {filteredOrders.length > 0 ? (
+          filteredOrders.map((order, idx) => {
+            const badge = getStatusBadgeStyle(order.status);
+            return (
+              <TouchableOpacity
+                key={order.orderId || idx}
+                style={styles.orderCard}
+                onPress={() => handleOrderPress(order)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={`Order ${order.orderId} - ${order.foodName}`}
+              >
+                {/* Header row: ID & Status Badge */}
                 <View style={styles.orderCardHeader}>
                   <View>
-                    <Text style={styles.orderIdText}>{order.orderId}</Text>
-                    <Text style={styles.orderDateText}>{order.createdAt ? `Placed at ${order.createdAt}` : 'Today'}</Text>
+                    <Text style={styles.orderId}>{order.orderId}</Text>
+                    <Text style={styles.orderDate}>
+                      {order.createdAt ? order.createdAt : 'Recent reservation'}
+                    </Text>
                   </View>
-                  <View style={styles.statusBadge}>
-                    <View style={styles.statusDot} />
-                    <Text style={styles.statusText}>{order.status || 'Ready for Pickup'}</Text>
+
+                  <View
+                    style={[
+                      styles.statusPill,
+                      { backgroundColor: badge.bg, borderColor: badge.border },
+                    ]}
+                  >
+                    <Ionicons
+                      name={badge.icon}
+                      size={13}
+                      color={badge.color}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text style={[styles.statusText, { color: badge.color }]}>
+                      {order.status}
+                    </Text>
                   </View>
                 </View>
 
                 {/* Divider */}
-                <View style={styles.cardDivider} />
+                <View style={styles.divider} />
 
-                {/* Meal Info */}
+                {/* Meal preview row */}
                 <View style={styles.mealRow}>
                   {order.image ? (
-                    <Image source={{ uri: order.image }} style={styles.mealImage} resizeMode="cover" />
+                    <Image
+                      source={{ uri: order.image }}
+                      style={styles.mealImage}
+                      resizeMode="cover"
+                    />
                   ) : (
-                    <View style={styles.mealImagePlaceholder}>
+                    <View style={styles.mealPlaceholder}>
                       <Ionicons name="restaurant" size={20} color={colors.primary} />
                     </View>
                   )}
-                  <View style={styles.mealDetails}>
-                    <Text style={styles.mealName}>{order.foodName}</Text>
-                    <Text style={styles.restaurantName}>{order.restaurant}</Text>
-                    <Text style={styles.mealQuantity}>
-                      {order.quantity} portion{order.quantity > 1 ? 's' : ''} • Rs. {order.totalPrice?.toLocaleString()}
+
+                  <View style={styles.mealInfo}>
+                    <Text style={styles.mealName} numberOfLines={1}>
+                      {order.foodName}
+                    </Text>
+                    <View style={styles.restaurantRow}>
+                      <Ionicons name="storefront-outline" size={12} color={colors.textSecondary} />
+                      <Text style={styles.restaurantText} numberOfLines={1}>
+                        {order.restaurant}
+                      </Text>
+                    </View>
+                    <Text style={styles.portionsText}>
+                      {order.quantity} portion{order.quantity > 1 ? 's' : ''} •{' '}
+                      <Text style={styles.priceHighlight}>
+                        Rs. {order.totalPrice?.toLocaleString()}
+                      </Text>
                     </Text>
                   </View>
                 </View>
 
-                {/* Pickup details box */}
-                <View style={styles.pickupBox}>
-                  <View style={styles.pickupRowItem}>
-                    <Ionicons name="time-outline" size={14} color={colors.primary} />
-                    <Text style={styles.pickupTimeText}>{order.pickupTime}</Text>
-                  </View>
-                  <View style={styles.pickupRowItem}>
-                    <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                    <Text style={styles.pickupLocationText} numberOfLines={1}>
-                      {order.pickupLocation}
+                {/* Pickup Window and Tap for details */}
+                <View style={styles.cardFooter}>
+                  <View style={styles.pickupTimeRow}>
+                    <Ionicons name="time-outline" size={13} color={colors.primary} />
+                    <Text style={styles.pickupTimeText} numberOfLines={1}>
+                      Pickup: {order.pickupTime}
                     </Text>
                   </View>
-                </View>
 
-                {/* Payment reminder banner */}
-                <View style={styles.payNotice}>
-                  <Ionicons name="wallet-outline" size={14} color={colors.primaryDark} style={styles.payIcon} />
-                  <Text style={styles.payText}>Pay Rs. {order.totalPrice?.toLocaleString()} on pickup (Cash / Card)</Text>
+                  <View style={styles.viewDetailLink}>
+                    <Text style={styles.viewDetailText}>Details</Text>
+                    <Ionicons name="chevron-forward" size={13} color={colors.primary} />
+                  </View>
                 </View>
-              </View>
-            ))}
-          </View>
+              </TouchableOpacity>
+            );
+          })
         ) : (
           <View style={styles.emptyCard}>
-            <View style={styles.iconCircle}>
+            <View style={styles.emptyIconCircle}>
               <Ionicons name="receipt-outline" size={32} color={colors.primary} />
             </View>
-            <Text style={styles.title}>No Active Orders</Text>
-            <Text style={styles.badge}>Order & Pickup Hub</Text>
-            <Text style={styles.description}>
-              Once you reserve surplus meals, your digital receipts, pickup countdown timers,
-              and order details will appear right here.
+            <Text style={styles.emptyTitle}>No Orders Found</Text>
+            <Text style={styles.emptySubtitle}>
+              {selectedFilter === 'All'
+                ? 'You do not have any orders yet. Explore surplus food on the Home screen to make your first reservation!'
+                : `No orders matching status "${selectedFilter}".`}
             </Text>
+            {selectedFilter !== 'All' ? (
+              <TouchableOpacity
+                style={styles.resetFilterBtn}
+                onPress={() => setSelectedFilter('All')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.resetFilterText}>View All Orders</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         )}
 
         {/* How Pickup Works Guide */}
         <View style={styles.workflowCard}>
-          <Text style={styles.workflowHeading}>How Pickup Works</Text>
-          
+          <Text style={styles.workflowHeading}>Pickup Guide</Text>
+
           <View style={styles.stepRow}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>1</Text>
+            <View style={styles.stepNum}>
+              <Text style={styles.stepNumText}>1</Text>
             </View>
-            <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Reserve Surplus Meal</Text>
-              <Text style={styles.stepSubtitle}>Choose your discounted food item from the home screen.</Text>
+            <View style={styles.stepBody}>
+              <Text style={styles.stepTitle}>Order Confirmation</Text>
+              <Text style={styles.stepSub}>Your meal is reserved and waiting at the restaurant.</Text>
             </View>
           </View>
 
           <View style={styles.stepRow}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>2</Text>
+            <View style={styles.stepNum}>
+              <Text style={styles.stepNumText}>2</Text>
             </View>
-            <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Visit Before Closing</Text>
-              <Text style={styles.stepSubtitle}>Arrive at the restaurant within the designated pickup window.</Text>
+            <View style={styles.stepBody}>
+              <Text style={styles.stepTitle}>Show Order ID</Text>
+              <Text style={styles.stepSub}>Present your Order ID to the cashier before the pickup deadline.</Text>
             </View>
           </View>
 
           <View style={styles.stepRow}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>3</Text>
+            <View style={styles.stepNum}>
+              <Text style={styles.stepNumText}>3</Text>
             </View>
-            <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Pay & Collect</Text>
-              <Text style={styles.stepSubtitle}>Show your Order ID to the cashier to pay and collect your food.</Text>
+            <View style={styles.stepBody}>
+              <Text style={styles.stepTitle}>Pay & Enjoy</Text>
+              <Text style={styles.stepSub}>Complete payment at pickup (Cash/Card) and enjoy your discounted meal!</Text>
             </View>
           </View>
         </View>
@@ -141,50 +270,74 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.textPrimary,
-  },
-  content: {
-    padding: 18,
-  },
-  ordersSection: {
-    marginBottom: 20,
-  },
-  sectionHeaderRow: {
+  headerTitleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
     marginBottom: 12,
   },
-  sectionHeading: {
-    fontSize: 16,
-    fontWeight: '700',
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '800',
     color: colors.textPrimary,
+    letterSpacing: -0.4,
   },
-  countBadge: {
+  totalBadge: {
     backgroundColor: colors.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 12,
   },
-  countText: {
+  totalBadgeText: {
     fontSize: 12,
     fontWeight: '700',
     color: colors.primaryDark,
+  },
+  filterRow: {
+    paddingHorizontal: 16,
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  filterPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterPillInactive: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+  },
+  filterText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  filterTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  filterTextInactive: {
+    color: colors.textSecondary,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 30,
   },
   orderCard: {
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
+    padding: 15,
     marginBottom: 14,
     shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 2 },
@@ -197,48 +350,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  orderIdText: {
-    fontSize: 14,
+  orderId: {
+    fontSize: 15,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: 0.3,
   },
-  orderDateText: {
+  orderDate: {
     fontSize: 11,
     color: colors.textSecondary,
     marginTop: 1,
   },
-  statusBadge: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
-    marginRight: 5,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.primaryDark,
   },
-  cardDivider: {
+  divider: {
     height: 1,
     backgroundColor: colors.borderLight,
-    marginVertical: 12,
+    marginVertical: 11,
   },
   mealRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
   mealImage: {
     width: 54,
@@ -246,7 +388,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginRight: 12,
   },
-  mealImagePlaceholder: {
+  mealPlaceholder: {
     width: 54,
     height: 54,
     borderRadius: 10,
@@ -255,7 +397,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  mealDetails: {
+  mealInfo: {
     flex: 1,
   },
   mealName: {
@@ -264,145 +406,141 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: 2,
   },
-  restaurantName: {
+  restaurantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  restaurantText: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 4,
+    marginLeft: 4,
   },
-  mealQuantity: {
+  portionsText: {
     fontSize: 12,
-    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  priceHighlight: {
+    fontWeight: '700',
     color: colors.primary,
   },
-  pickupBox: {
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
-  },
-  pickupRowItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 2,
-  },
-  pickupTimeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginLeft: 6,
-  },
-  pickupLocationText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginLeft: 6,
-    flex: 1,
-  },
-  payNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginTop: 12,
   },
-  payIcon: {
+  pickupTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
     marginRight: 6,
   },
-  payText: {
-    fontSize: 12,
+  pickupTimeText: {
+    fontSize: 11,
     fontWeight: '600',
-    color: colors.primaryDark,
+    color: colors.textPrimary,
+    marginLeft: 5,
+  },
+  viewDetailLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewDetailText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+    marginRight: 2,
   },
   emptyCard: {
     backgroundColor: colors.surface,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 24,
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 16,
   },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  emptyIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  title: {
-    fontSize: 20,
+  emptyTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 6,
   },
-  badge: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  description: {
+  emptySubtitle: {
     fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },
+  resetFilterBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginTop: 14,
+  },
+  resetFilterText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   workflowCard: {
     backgroundColor: colors.surface,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 18,
+    padding: 16,
   },
   workflowHeading: {
     fontSize: 15,
     fontWeight: '700',
     color: colors.textPrimary,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  stepNumber: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  stepNum: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-    marginTop: 2,
+    marginRight: 10,
+    marginTop: 1,
   },
-  stepNumberText: {
+  stepNumText: {
     color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '700',
-    fontSize: 13,
   },
-  stepContent: {
+  stepBody: {
     flex: 1,
   },
   stepTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 1,
   },
-  stepSubtitle: {
+  stepSub: {
     fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 16,

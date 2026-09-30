@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CustomerMainScreen from '../screens/CustomerMainScreen';
 import FoodDetailsScreen from '../screens/FoodDetailsScreen';
 import OrderConfirmationScreen from '../screens/OrderConfirmationScreen';
+import OrderDetailScreen from '../screens/OrderDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,6 +16,9 @@ const Stack = createNativeStackNavigator();
  * Stage 2: Food Details and Basic Ordering Flow
  * - FoodDetails: Full meal details, interactive pricing and quantity selection
  * - OrderConfirmation: Order summary, pickup instructions, and reservation confirmation
+ *
+ * Stage 3: My Orders & Order Tracking
+ * - OrderDetail: Detailed order receipt, status indicator, and pickup instructions
  *
  * Extensibility for Future Phases:
  * - Provider flows (Provider Home, Add Food, Manage Food, Provider Orders) can be
@@ -44,6 +48,11 @@ export default function AppNavigator() {
         name="OrderConfirmation"
         component={OrderConfirmationScreen}
         options={{ title: 'Order Confirmation' }}
+      />
+      <Stack.Screen
+        name="OrderDetail"
+        component={OrderDetailScreen}
+        options={{ title: 'Order Details' }}
       />
 
       {/* 

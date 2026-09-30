@@ -33,6 +33,14 @@ export default function OrderConfirmationScreen({ route, navigation }) {
     });
   };
 
+  const handleViewOrders = () => {
+    // Navigate back to the Customer main flow with Orders tab active
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'CustomerMain', params: { initialTab: 'orders' } }],
+    });
+  };
+
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
       <ScrollView
@@ -136,6 +144,14 @@ export default function OrderConfirmationScreen({ route, navigation }) {
         </View>
 
         {/* Action Buttons */}
+        <TouchableOpacity
+          style={styles.ordersButton}
+          onPress={handleViewOrders}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.ordersButtonText}>View in My Orders</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.homeButton}
           onPress={handleBackToHome}
@@ -377,7 +393,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 17,
   },
-  homeButton: {
+  ordersButton: {
     backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 14,
@@ -389,8 +405,22 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
-  homeButtonText: {
+  ordersButtonText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  homeButton: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  homeButtonText: {
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '700',
   },

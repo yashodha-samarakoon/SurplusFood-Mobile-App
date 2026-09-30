@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import HomeScreen from './HomeScreen';
@@ -8,9 +8,15 @@ import ProfileScreen from './ProfileScreen';
 import BottomNavigation from '../components/BottomNavigation';
 import { colors } from '../theme/colors';
 
-export default function CustomerMainScreen({ navigation }) {
-  // 'home' is selected by default as required
-  const [activeTab, setActiveTab] = useState('home');
+export default function CustomerMainScreen({ route, navigation }) {
+  // 'home' is selected by default as required, or overridden by route params
+  const [activeTab, setActiveTab] = useState(route?.params?.initialTab || 'home');
+
+  useEffect(() => {
+    if (route?.params?.initialTab) {
+      setActiveTab(route.params.initialTab);
+    }
+  }, [route?.params?.initialTab]);
 
   const renderActiveScreen = () => {
     switch (activeTab) {

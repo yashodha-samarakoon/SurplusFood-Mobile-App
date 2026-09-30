@@ -2,15 +2,19 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CustomerMainScreen from '../screens/CustomerMainScreen';
 import FoodDetailsScreen from '../screens/FoodDetailsScreen';
+import OrderConfirmationScreen from '../screens/OrderConfirmationScreen';
 
 const Stack = createNativeStackNavigator();
 
 /**
  * AppNavigator handles top-level routing for SurplusFood.
  *
- * Current Phase: Initial Customer-Side Development
+ * Stage 1: Initial Customer-Side Foundation
  * - CustomerMain: Main customer container (Home, Explore, Orders, Profile tabs)
- * - FoodDetails: Prepared route for the upcoming Food Details screen
+ *
+ * Stage 2: Food Details and Basic Ordering Flow
+ * - FoodDetails: Full meal details, interactive pricing and quantity selection
+ * - OrderConfirmation: Order summary, pickup instructions, and reservation confirmation
  *
  * Extensibility for Future Phases:
  * - Provider flows (Provider Home, Add Food, Manage Food, Provider Orders) can be
@@ -35,6 +39,11 @@ export default function AppNavigator() {
         name="FoodDetails"
         component={FoodDetailsScreen}
         options={{ title: 'Food Details' }}
+      />
+      <Stack.Screen
+        name="OrderConfirmation"
+        component={OrderConfirmationScreen}
+        options={{ title: 'Order Confirmation' }}
       />
 
       {/* 
